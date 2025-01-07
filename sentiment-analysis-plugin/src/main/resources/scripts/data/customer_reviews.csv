@@ -1,0 +1,6 @@
+review_id,product_id,customer_id,review_text,review_date
+1,P001,C001,This product is amazing! Highly recommend it.,2025-01-01
+2,P002,C002,Not satisfied with the quality of the product.,2025-01-02
+3,P003,C003,"Decent product for the price, but could be better.",2025-01-03
+4,P001,C004,Absolutely love it! Will buy again.,2025-01-04
+5,P002,C005,Terrible experience. Would not recommend.,2025-01-05

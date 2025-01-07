@@ -1,0 +1,13 @@
+PUT /customer_reviews
+{
+  "mappings": {
+    "properties": {
+      "review_id": { "type": "keyword" },
+      "product_id": { "type": "keyword" },
+      "customer_id": { "type": "keyword" },
+      "review_text": { "type": "text" },
+      "review_date": { "type": "date" },
+      "sentiment_score": { "type": "float" }
+    }
+  }
+}

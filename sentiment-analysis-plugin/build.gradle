@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'distribution'
+}
+
+group = 'org.opensearch.plugins'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    opensearchVersion = '2.18.0'
+}
+
+dependencies {
+    compileOnly "org.opensearch:opensearch:${opensearchVersion}"
+    testImplementation "org.opensearch:opensearch:${opensearchVersion}"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+// task buildZip(type: Zip) {
+//     from('build/libs') {
+//         include '*.jar'
+//     }
+//     from('src/main/resources') {
+//         include 'plugin-descriptor.properties'
+//     }
+//     archiveFileName = "${project.name}-${project.version}.zip"
+// }
+
+// buildZip.dependsOn build
+
+// java {
+//     toolchain {
+//         languageVersion = JavaLanguageVersion.of(21)
+//     }
+// }
+task buildPluginZip(type: Zip) {
+    from jar
+    from configurations.runtimeClasspath
+    from('src/main/resources') {
+        include 'plugin-descriptor.properties'
+        include 'scripts/**'
+    }
+    into ''
+}
+
+artifacts {
+    archives buildPluginZip
+}
+
+buildPluginZip.dependsOn(jar)
+
+tasks.named('compileJava') {
+    outputs.cacheIf { true }
+}

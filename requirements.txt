@@ -1,1 +1,3 @@
 nltk
+pandas
+opensearch-py
