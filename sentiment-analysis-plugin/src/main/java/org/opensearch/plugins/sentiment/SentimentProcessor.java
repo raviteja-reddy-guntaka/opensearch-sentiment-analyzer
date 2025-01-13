@@ -2,68 +2,68 @@ package org.opensearch.plugins.sentiment;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.bytes.BytesReference;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.ingest.AbstractProcessor;
 import org.opensearch.ingest.IngestDocument;
+
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.util.Map;
 
 public class SentimentProcessor extends AbstractProcessor {
-    public static final String TYPE = "sentiment";
+    public static final String TYPE = "sentiment_analysis";
     private static final Logger logger = LogManager.getLogger(SentimentProcessor.class);
+    private static final String SERVICE_URL = "http://sentiment-analysis-service:5000/analyze";
 
     public SentimentProcessor(String tag, String description, Map<String, Object> config) {
         super(tag, description);
     }
-
+    
     @Override
     public IngestDocument execute(IngestDocument ingestDocument) throws Exception {
         String text = ingestDocument.getFieldValue("review_text", String.class);
-        double sentimentScore = analyzeSentiment(text);
-        ingestDocument.setFieldValue("sentiment_score", sentimentScore);
+        Map<String, Object> result = analyzeSentiment(text);
+        ingestDocument.setFieldValue("sentiment_score", result.get("score"));
+        ingestDocument.setFieldValue("sentiment_category", result.get("category"));
         return ingestDocument;
     }
-    
 
-    // public double analyzeSentiment(String text) {
-    //     try {
-    //         ProcessBuilder pb = new ProcessBuilder("py", "/scripts/perform_sentiment_analysis.py", text);
-    //         Process p = pb.start();
-    //         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-    //         String result = reader.readLine();
-    //         return Double.parseDouble(result);
-    //     } catch (Exception e) {
-    //         throw new RuntimeException("Failed to analyze sentiment", e);
-    //     }
-    // }
-
-    public double analyzeSentiment(String text) {
+    public Map<String, Object> analyzeSentiment(String text) {
         try {
-            URL resourceUrl = getClass().getResource("/scripts/perform_sentiment_analysis.py");
-            if (resourceUrl == null) {
-                logger.debug("Script file not found in resources");
-                throw new RuntimeException("Script file not found in resources");
+            HttpURLConnection con = (HttpURLConnection) URI.create(SERVICE_URL).toURL().openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setDoOutput(true);
+
+            XContentBuilder builder = JsonXContent.contentBuilder();
+            builder.startObject();
+            builder.field("text", text);
+            builder.endObject();
+
+            try (OutputStream os = con.getOutputStream()) {
+                builder.generator().flush();
+                BytesReference.bytes(builder).writeTo(os);
             }
-            File scriptFile = new File(resourceUrl.toURI());
-            
-            ProcessBuilder pb = new ProcessBuilder("python3", scriptFile.getAbsolutePath(), text);
-            Process p = pb.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String result = reader.readLine();
-            if (result == null) {
-                logger.debug("No output from sentiment analysis script", p);
-                throw new RuntimeException("No output from sentiment analysis script");
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+                return JsonXContent.jsonXContent.createParser(null, null, response.toString()).map();
             }
-            return Double.parseDouble(result);
         } catch (Exception e) {
-            logger.debug("Failed to analyze sentiment", e);
+            logger.error("Failed to analyze sentiment", e);
             throw new RuntimeException("Failed to analyze sentiment", e);
         }
     }
     
-
     @Override
     public String getType() {
         return TYPE;

@@ -1,0 +1,4 @@
+grant {
+  permission java.net.SocketPermission "sentiment-analysis-service:5000", "connect,resolve";
+  permission java.lang.RuntimePermission "accessDeclaredMembers";
+};
