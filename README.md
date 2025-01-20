@@ -7,6 +7,8 @@ It consists of three main components:
 - Sentiment Analysis Plugin for OpenSearch
 - Sentiment Analysis Service
 
+![alt text](opensearch-sentiment-analyser-flow.png)
+
 This is a customer_reviews dashboard visualization showing a vertical bar chart representing the average sentiment score of customer reviews received per product during the selected timeframe.
 
 ![alt text](dashboard_bar_chart.png)
